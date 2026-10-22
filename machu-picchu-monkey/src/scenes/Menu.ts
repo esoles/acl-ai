@@ -14,7 +14,7 @@ export class Menu extends Phaser.Scene {
     g.fillStyle(0x57b947).fillRect(0, 560, 360, 80);
     const T = (y: number, s: string, size: number, color = '#fff') =>
       this.add.text(180, y, s, { fontFamily: 'monospace', fontSize: size + 'px', color, align: 'center', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5);
-    T(110, 'MACHU PICCHU\nARCADE', 34, '#f2c230');
+    T(110, 'MACHU PICCHU\nMONKEY', 34, '#f2c230');
     T(185, 'La Aventura del Monito Inca', 14);
     const m = this.add.sprite(150, 470, 'monkey').setScale(6);
     this.add.sprite(250, 500, 'llama').setScale(4).setFlipX(true);

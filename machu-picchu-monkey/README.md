@@ -1,4 +1,4 @@
-# Machu Picchu Arcade — La Aventura del Monito Inca
+# Machu Picchu Monkey — La Aventura del Monito Inca
 
 Juego arcade 2D de plataformas verticales (TypeScript + Vite + Phaser 3). Un monito con chullo y poncho inca sube las terrazas de Machu Picchu esquivando llamas, recogiendo monedas y llegando a la Puerta del Sol.
 
@@ -29,7 +29,7 @@ npm run test:e2e                      # Playwright (humo: carga y arranque)
 ## Publicación en GitHub Pages
 1. Crea un repositorio en GitHub y sube el proyecto a la rama `main`:
    ```bash
-   git init && git add . && git commit -m "Machu Picchu Arcade"
+   git init && git add . && git commit -m "Machu Picchu Monkey"
    git branch -M main && git remote add origin https://github.com/<usuario>/<repo>.git && git push -u origin main
    ```
 2. En el repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
