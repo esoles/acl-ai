@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BecaMatch AI Office</title>
+<style>
+:root{--bg:#eaf2f8;--ink:#14213d;--pn:rgba(255,255,255,.95);--ln:#d3deea;--br:#0ea5a4;--br2:#4f46e5;--am:#f59e0b;box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1724;--ink:#e8eefc;--pn:rgba(20,29,46,.95);--ln:#2a3a57}}
+:root[data-theme="dark"]{--bg:#0f1724;--ink:#e8eefc;--pn:rgba(20,29,46,.95);--ln:#2a3a57}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}
+canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
+button,select,input,textarea{font:inherit;color:inherit}
+.btn{min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--ln);background:var(--pn);cursor:pointer}
+.btn.pri{background:linear-gradient(135deg,var(--br),var(--br2));color:#fff;border:0;font-weight:600}
+.btn:disabled{opacity:.6}
+#top{position:fixed;left:0;right:0;top:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;pointer-events:none}
+#top>*{pointer-events:auto}
+#brand{display:flex;align-items:center;gap:8px;background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:6px 12px;font-weight:700}
+#brand i{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--br),var(--br2));color:#fff;font-style:normal}
+#mode{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--am);color:#3a2600}
+.panel{position:fixed;background:var(--pn);border:1px solid var(--ln);border-radius:16px;padding:14px;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.18);display:none;backdrop-filter:blur(6px)}
+.panel.on{display:block}
+#ops{left:10px;top:calc(64px + env(safe-area-inset-top,0px));width:320px;max-height:calc(100% - 140px)}
+#ag{right:10px;top:calc(64px + env(safe-area-inset-top,0px));width:360px;max-height:calc(100% - 90px - env(safe-area-inset-bottom,0px))}
+#cfg{left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,92vw);max-height:80%}
+.x{float:right}
+h2{margin:0 0 4px;font-size:18px}h3{margin:14px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;opacity:.7}
+.chip{display:inline-block;padding:3px 10px;border-radius:99px;color:#fff;font-size:12px;font-weight:700}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--ln);font-size:14px}
+.kv b{text-align:right}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.row .btn{min-height:36px;padding:0 10px;font-size:13px}.row .btn.on{background:var(--br);color:#fff}
+.li{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--ln);border-radius:12px;margin:6px 0;cursor:pointer}
+.small{font-size:12px;opacity:.75}
+.warn{background:#fff4d6;color:#5b4300;border-radius:10px;padding:8px;font-size:13px;margin:8px 0}
+.err{background:#fde2e0;color:#7a1410;border-radius:10px;padding:8px;font-size:13px;margin:8px 0}
+.ok{background:#dcf5e6;color:#0b4a24;border-radius:10px;padding:8px;font-size:13px;margin:8px 0}
+textarea{width:100%;min-height:80px;border-radius:12px;border:1px solid var(--ln);background:transparent;padding:10px;resize:vertical}
+input[type=text]{width:100%;min-height:40px;border-radius:10px;border:1px solid var(--ln);background:transparent;padding:0 10px;margin:2px 0 6px}
+#joy{position:fixed;left:calc(18px + env(safe-area-inset-left,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));width:120px;height:120px;border-radius:50%;background:rgba(20,33,61,.25);border:2px solid rgba(255,255,255,.6);touch-action:none;display:none}
+#joy div{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom,0px));background:var(--pn);border:1px solid var(--ln);border-radius:99px;padding:6px 14px;font-size:12px;max-width:92vw;text-align:center}
+#fatal{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;background:var(--bg);z-index:9}
+@media (pointer:coarse),(max-width:760px){#joy{display:block}#hint{display:none}}
+@media (max-width:760px){
+ #ag,#ops{left:0;right:0;top:auto;bottom:0;width:100%;max-height:52%;border-radius:18px 18px 0 0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+}
+</style>
+</head>
+<body>
+<!-- Dependencia externa: Three.js r128 desde cdnjs (única librería externa). Si falla, se muestra #fatal. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<div id="top">
+ <div id="brand"><i>🎓</i>BecaMatch <span style="font-weight:500;opacity:.7">AI Office</span></div>
+ <span id="mode">MODO DEMOSTRACIÓN</span>
+ <button class="btn" id="bOps">📊 Operaciones</button>
+ <select class="btn" id="zoneSel" aria-label="Vista de cámara"></select>
+ <button class="btn" id="bPause">⏸ Pausar</button>
+ <button class="btn" id="bFx">✨ Efectos: ON</button>
+ <button class="btn" id="bCfg">⚙ Config</button>
+</div>
+<aside class="panel" id="ops" aria-label="Panel de operaciones"></aside>
+<aside class="panel" id="ag" aria-label="Ficha del agente">
+ <button class="btn x" id="agX" aria-label="Cerrar">✕</button>
+ <div id="ainfo"></div>
+ <h3>Nueva instrucción</h3>
+ <textarea id="ta" placeholder="Ej.: Busca becas de maestría en España con convocatoria abierta"></textarea>
+ <button class="btn pri" id="send" style="width:100%;margin-top:6px">Asignar tarea</button>
+ <div id="smsg"></div>
+</aside>
+<aside class="panel" id="cfg"></aside>
+<div id="joy"><div id="knob"></div></div>
+<div id="hint">WASD / flechas: moverse · Arrastrar: girar cámara · Rueda: zoom · Clic en suelo: ir · Clic en agente: ficha · Esc: cerrar</div>
+<div id="fatal"><div><h2>No se pudo cargar Three.js</h2><p>La oficina 3D necesita la librería desde cdnjs.cloudflare.com. Revisa tu conexión (o bloqueadores de contenido) y recarga la página.</p></div></div>
+<script>
+'use strict';
+if(!window.THREE){document.getElementById('fatal').style.display='grid';throw new Error('THREE no cargó');}
+
+/* ================= CONFIGURACIÓN DE INTEGRACIONES =================
+ Sin backendUrl la app corre en MODO DEMOSTRACIÓN. NO pongas claves/secretos aquí:
+ las llamadas a n8n, Sheets, BD y correo deben pasar por un backend propio.
+ Contrato propuesto (a confirmar con el propietario del sistema; no existe aún):
+   GET  backendUrl+statusPath -> {agents:[{id,state,task,updatedAt,result,alerts[],history[{t,text}],source}],
+                                   connections:{n8n,sheets,db,email: 'ok'|'error'|'pending'}, lastRun, lastReport}
+   POST backendUrl+taskPath   -> body {agentId, instruction}; se muestra la respuesta tal cual.
+ state válido: working|available|waiting|resting|attention|error */
+const CONFIG={backendUrl:'',statusPath:'',taskPath:'',pollMs:10000};
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const STATES={
+ working:{t:'Trabajando',c:'#27ae60',i:'💻'},available:{t:'Disponible',c:'#2d8fdd',i:'🟢'},
+ waiting:{t:'Esperando instrucciones',c:'#c99a06',i:'⏳'},resting:{t:'Descansando',c:'#8e5bb5',i:'🌿'},
+ attention:{t:'Necesita atención',c:'#e67e22',i:'🔔'},error:{t:'Error',c:'#e74c3c',i:'⚠️'},unknown:{t:'Sin datos',c:'#7f8c8d',i:'❔'},off:{t:'Desactivado',c:'#6b7280',i:'🚫'},you:{t:'Tú',c:'#ff6b9d',i:'🧑'}};
+const hasBackend=!!(CONFIG.backendUrl&&CONFIG.statusPath);
+const canSend=!!(CONFIG.backendUrl&&CONFIG.taskPath);
+const MODE=hasBackend?'real':'demo';
+
+/* ================= AGENTES (editables desde ⚙ Config) ================= */
+const DEF=[
+ {id:'scout',name:'Scout',role:'Buscador de becas',desc:'Busca oportunidades en fuentes oficiales: convocatorias, instituciones, países y fechas límite.',col:0x2a9d8f,home:[-16,-8.3],demo:'Revisando convocatorias de ejemplo',st:'working'},
+ {id:'veritas',name:'Veritas',role:'Verificador de becas',desc:'Comprueba autenticidad: enlaces oficiales, requisitos, cobertura y fechas. Marca lo dudoso para verificación humana.',col:0x4f46e5,home:[-15,8.8],demo:'Verificando enlaces oficiales de ejemplo',st:'waiting'},
+ {id:'match',name:'Match',role:'Especialista en compatibilidad',desc:'Analiza la correspondencia entre becas y perfiles. Una coincidencia nunca es garantía de obtener la beca.',col:0xf59e0b,home:[-11,-8.3],demo:'Calculando compatibilidades de ejemplo',st:'working'},
+ {id:'radar',name:'Radar',role:'Monitor de oportunidades y competencia',desc:'Revisa las plataformas competidoras de la hoja de Google Sheets configurada y detecta cambios.',col:0xe76f51,home:[-6,-8.3],demo:'Comparando plataformas de ejemplo',st:'resting'},
+ {id:'nexo',name:'Nexo',role:'Coordinador y asistente',desc:'Organiza tareas, resume resultados, presenta alertas y prepara informes cuando haya integraciones.',col:0x264653,home:[-2,-12],demo:'Resumiendo estado general (ejemplo)',st:'available'}];
+let saved={};try{saved=JSON.parse(localStorage.getItem('bm_cfg')||'{}')}catch(e){}
+const agents=DEF.map(d=>({...d,name:saved[d.id]?.name||d.name,role:saved[d.id]?.role||d.role,active:saved[d.id]?.active!==false,
+ state:MODE==='demo'?d.st:'unknown',task:MODE==='demo'?d.demo+' (dato ficticio)':'—',updated:MODE==='demo'?new Date():null,
+ result:MODE==='demo'?'— (modo demostración, sin resultados reales)':'—',alerts:[],history:[],source:'',near:false}));
+const byId=Object.fromEntries(agents.map(a=>[a.id,a]));
+let conn={n8n:'pending',sheets:'pending',db:'pending',email:'pending'},lastRun=null,lastReport=null,backendErr=null;
+let drafts=[];try{drafts=JSON.parse(localStorage.getItem('bm_drafts')||'[]')}catch(e){}
+
+/* ================= ESCENA ================= */
+const renderer=new THREE.WebGLRenderer({antialias:!matchMedia('(pointer:coarse)').matches,powerPreference:'high-performance'});
+const coarse=matchMedia('(pointer:coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,coarse?1.5:2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);renderer.domElement.style.touchAction='none';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xa9c4dc);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.5,200);
+scene.add(new THREE.HemisphereLight(0xffffff,0x9db5a0,.85));
+const sun=new THREE.DirectionalLight(0xffffff,.8);sun.position.set(-12,22,10);sun.castShadow=true;
+sun.shadow.mapSize.set(coarse?1024:2048,coarse?1024:2048);
+Object.assign(sun.shadow.camera,{left:-26,right:26,top:20,bottom:-20,near:1,far:60});scene.add(sun);
+
+const mats={};const mat=c=>mats[c]||(mats[c]=new THREE.MeshLambertMaterial({color:c}));
+const obst=[];/* obstáculos AABB {x,z,hx,hz} para colisiones */
+function box(w,h,d,col,x,y,z,solid){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(col));m.position.set(x,y+h/2,z);m.castShadow=m.receiveShadow=true;scene.add(m);if(solid)obst.push({x,z,hx:w/2,hz:d/2});return m}
+function cylM(rt,rb,h,col,seg=12){return new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat(col))}
+function sphM(r,col){return new THREE.Mesh(new THREE.SphereGeometry(r,14,10),mat(col))}
+function canv(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c}
+function rr(x,X,Y,W,H,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath()}
+function tsprite(txt,col,x,y,z,sx){const c=canv(512,96),g=c.getContext('2d');g.fillStyle='rgba(255,255,255,.9)';rr(g,6,10,500,76,38);g.fill();g.strokeStyle=col;g.lineWidth=6;g.stroke();
+ g.fillStyle='#14213d';g.font='bold 38px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,256,49);
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));s.scale.set(sx,sx*96/512,1);s.position.set(x,y,z);s.renderOrder=5;scene.add(s)}
+function scr(kind){const c=canv(128,80),g=c.getContext('2d');g.fillStyle='#10223d';g.fillRect(0,0,128,80);
+ if(kind==='bars'){['#2a9d8f','#f59e0b','#e76f51','#4f46e5'].forEach((k,i)=>{g.fillStyle=k;const h=20+((i*37)%40);g.fillRect(12+i*28,70-h,18,h)})}
+ else if(kind==='map'){g.fillStyle='#1f6f8b';for(let i=0;i<9;i++){g.beginPath();g.arc(14+(i*53)%110,12+(i*29)%56,5+i%3*3,0,7);g.fill()}g.fillStyle='#f59e0b';g.fillRect(60,34,6,6)}
+ else if(kind==='line'){g.strokeStyle='#2ecc71';g.lineWidth=3;g.beginPath();g.moveTo(6,60);[[30,40],[55,52],[80,24],[120,14]].forEach(p=>g.lineTo(p[0],p[1]));g.stroke()}
+ else{g.fillStyle='#7ee0d8';for(let i=0;i<6;i++)g.fillRect(10,10+i*11,40+(i*23)%60,5)}
+ return new THREE.CanvasTexture(c)}
+function monitor(x,z,kind,y=.8){box(.9,.55,.06,0x222b3a,x,y+.1,z);const p=new THREE.Mesh(new THREE.PlaneGeometry(.8,.45),new THREE.MeshBasicMaterial({map:scr(kind)}));p.position.set(x,y+.37,z+.04);scene.add(p)}
+function desk(x,z,w,kinds){box(w,.1,1.6,0xc9a26b,x,.75,z);box(w-.2,.75,1.4,0x8d6e4b,x,0,z,false);obst.push({x,z,hx:w/2,hz:.8});
+ kinds.forEach((k,i)=>monitor(x-(kinds.length-1)*.55+i*1.1,z-.5,k,.85))}
+function tree(x,z){const t=cylM(.2,.28,1.6,0x7a5230);t.position.set(x,.8,z);t.castShadow=true;scene.add(t);
+ [[0,2.1,1.2,0x3f9b57],[0,3,.9,0x4cb36a]].forEach(a=>{const s=new THREE.Mesh(new THREE.IcosahedronGeometry(a[2],0),mat(a[3]));s.position.set(x,a[1],z);s.castShadow=true;scene.add(s)});obst.push({x,z,hx:.45,hz:.45})}
+function plant(x,z){box(.5,.4,.5,0xb86b4b,x,0,z,true);const s=sphM(.4,0x3f9b57);s.position.set(x,.7,z);scene.add(s)}
+
+/* Suelo, zonas y paredes */
+box(46,.2,34,0x5f7f99,0,-.2,0);
+[[-10,-7,0x9dc2dc],[10,-7,0xb9a58a],[-10,7,0x9cc7a8],[10,7,0x6fbf6a]].forEach(a=>{const f=box(19.6,.12,13.6,a[2],a[0],-.1,a[1]);f.castShadow=false});
+box(40.8,3.6,.4,0x8ea9c9,0,0,-14.2);box(.4,3.6,28.8,0x8ea9c9,-20.2,0,0);box(40.8,.9,.4,0x8ea9c9,0,0,14.2);box(.4,.9,28.8,0x8ea9c9,20.2,0,0);
+/* Paredes interiores con puerta central (8 m) hacia el vestíbulo de alertas */
+[[-12,0,16,.3],[12,0,16,.3],[0,-9,.3,10],[0,9,.3,10]].forEach(w=>{box(w[2],1.3,w[3],0x5d7ea6,w[0],0,w[1],true);box(w[2]+.1,.12,w[3]+.1,0xe3ecf7,w[0],1.3,w[1])});
+const logoC=canv(720,220),lg=logoC.getContext('2d');lg.fillStyle='#fff';lg.fillRect(0,0,720,220);
+const gr=lg.createLinearGradient(0,0,720,0);gr.addColorStop(0,'#0ea5a4');gr.addColorStop(1,'#4f46e5');lg.fillStyle=gr;lg.fillRect(0,0,720,14);
+lg.beginPath();lg.moveTo(60,80);lg.lineTo(120,52);lg.lineTo(180,80);lg.lineTo(120,108);lg.closePath();lg.fill();lg.fillRect(98,108,44,34);
+lg.font='bold 84px system-ui,sans-serif';lg.textBaseline='middle';lg.fillText('BecaMatch',215,95);lg.font='30px system-ui,sans-serif';lg.fillStyle='#667';lg.fillText('AI Office · Agentes de becas',215,165);
+const logo=new THREE.Mesh(new THREE.PlaneGeometry(9.6,2.93),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(logoC)}));logo.position.set(0,2.1,-13.95);scene.add(logo);
+tsprite('CENTRO DE OPERACIONES','#0ea5a4',-10,3.6,-1.5,6.5);tsprite('SALA DE REUNIONES','#4f46e5',10,3.6,-1.5,6);
+tsprite('ZONA DE INVESTIGACIÓN','#c99a06',-10,3.6,12.4,6.5);tsprite('JARDÍN DE DESCANSO','#27ae60',10,3.6,12.4,6);
+
+/* Centro de operaciones */
+desk(-16,-10,3,['list','list']);desk(-11,-10,3,['bars','bars','line']);desk(-6,-10,3,['map','line']);
+box(3.4,1.6,.1,0xffffff,-2,.9,-13.9);box(3.4,1.6,.1,0xffffff,-14,.9,-13.9);
+[-16,-11,-6].forEach(x=>box(.7,.1,.7,0x37496b,x,.5,-8.3));
+/* Sala de reuniones */
+box(5,.5,1.2,0x4f46e5,11,0,-11.8,true);box(5,.5,.3,0x3c35b8,11,.5,-12.3);box(4,.12,2,0xd9b382,11,.7,-7);box(.2,.7,.2,0x6b5236,11,0,-7);
+obst.push({x:11,z:-7,hx:2,hz:1});[7.5,14.5].forEach(x=>{box(1.4,.5,1.4,0x0ea5a4,x,0,-7,true);box(1.4,.6,.3,0x0b8483,x,.5,-7.6)});plant(19,-13);plant(2,-13);
+/* Zona de investigación */
+box(4,.1,1.6,0xc9a26b,-15,.75,7);box(3.8,.75,1.4,0x8d6e4b,-15,0,7);obst.push({x:-15,z:7,hx:2,hz:.8});monitor(-15.6,6.6,'list',.85);
+box(4,.1,1.6,0xc9a26b,-10,.75,10);box(3.8,.75,1.4,0x8d6e4b,-10,0,10);obst.push({x:-10,z:10,hx:2,hz:.8});
+[-17,-13,-9,-5].forEach(x=>{box(2.6,2.4,.8,0x9b7653,x,0,13.4,true);[.3,1,1.7].forEach((y,i)=>box(2.4,.35,.5,[0x2a9d8f,0xf59e0b,0xe76f51][(i+x+20)%3|0],x,y,13.2))});
+box(.15,1.6,4,0xffffff,-19.8,1,5);box(.15,1.6,4,0xf1f5ff,-19.8,1,10);
+/* Jardín */
+tree(9,12);tree(15,12.5);tree(18.3,8);tree(5.5,6);[12,16].forEach(x=>{box(2.6,.45,.8,0x9b6b3d,x,0,6,true);box(2.6,.5,.15,0x8a5c30,x,.45,5.7)});
+[[6,12],[18,12.5],[8.5,4.5]].forEach(p=>plant(p[0],p[1]));
+/* Punto de alertas (centro) */
+box(.5,.1,.5,0x555f6e,0,0,0);const pole=cylM(.1,.1,2,0x555f6e);pole.position.set(0,1,0);scene.add(pole);obst.push({x:0,z:0,hx:.35,hz:.35});
+const beacon=sphM(.35,0xe74c3c);beacon.position.y=2.2;scene.add(beacon);tsprite('ALERTAS','#e74c3c',0,3.2,0,2.4);
+
+const SPOTS={
+ available:[[11,-9.2],[8,-9.4],[14,-9.4],[11,-4.6],[7,-4.8]],
+ waiting:[[-6,6],[-5,9],[-8,5],[-4,4],[-7,11.2]],
+ resting:[[12,7.6],[16,7.6],[10,10],[14,11],[17,9.8]],
+ attention:[[1.6,0],[-1.6,0],[0,1.6],[0,-1.6],[1.3,1.3]]};
+SPOTS.unknown=SPOTS.available;SPOTS.error=null;SPOTS.off=SPOTS.resting;
+
+/* ================= PERSONAJES ================= */
+function makeChar(col,idx){const g=new THREE.Group(),m=new THREE.Group();g.add(m);
+ const b=cylM(.32,.4,.9,col);b.position.y=.75;m.add(b);const h=sphM(.3,0xffd7b5);h.position.y=1.45;m.add(h);
+ [-.11,.11].forEach(x=>{const e=sphM(.045,0x222222);e.position.set(x,1.48,.27);m.add(e)});
+ const mk=s=>{const a=new THREE.Group();a.position.set(s*.46,1.1,0);const l=cylM(.07,.07,.6,col,8);l.position.y=-.3;a.add(l);m.add(a);return a};
+ const aL=mk(-1),aR=mk(1);
+ const acc=[()=>{const c=cylM(.32,.32,.1,0x14213d);c.position.y=1.76;return c},/* gorra */
+  ()=>{const t=new THREE.Mesh(new THREE.TorusGeometry(.12,.025,6,12),mat(0x14213d));t.position.set(0,1.5,.3);return t},/* gafas */
+  ()=>{const s=sphM(.1,0xff5d8f);s.position.y=1.9;return s},/* antena */
+  ()=>{const c=new THREE.Mesh(new THREE.ConeGeometry(.22,.2,10),mat(0xdddddd));c.position.y=1.85;c.rotation.x=Math.PI;return c},/* radar */
+  ()=>{const t=new THREE.Mesh(new THREE.TorusGeometry(.3,.03,6,14,Math.PI),mat(0x14213d));t.position.y=1.5;return t}][idx%5];
+ if(acc)m.add(acc());g.traverse(o=>{if(o.isMesh)o.castShadow=true});return{g,m,aL,aR}}
+function anim(c,t,mv,mode){const sw=mv?Math.sin(t*10)*.7:0;c.aL.rotation.set(sw,0,-.15);c.aR.rotation.set(-sw,0,.15);let y=mv?Math.abs(Math.sin(t*10))*.08:0;
+ if(!mv&&mode==='working'){c.aL.rotation.x=-1.1+Math.sin(t*14)*.25;c.aR.rotation.x=-1.1+Math.cos(t*13)*.25}
+ if(mode==='attention'&&!mv)c.aR.rotation.set(0,0,2.7+Math.sin(t*8)*.3);
+ if(mode==='error')y=Math.abs(Math.sin(t*6))*.55;
+ if(mode==='resting'&&!mv)y=Math.sin(t*1.5)*.03;
+ c.m.position.y=y}
+function drawLabel(a){const g=a.lc.getContext('2d'),s=STATES[a.state]||STATES.unknown;g.clearRect(0,0,256,96);g.fillStyle='rgba(255,255,255,.96)';rr(g,6,18,244,60,30);g.fill();g.lineWidth=5;g.strokeStyle=s.c;g.stroke();
+ g.fillStyle=s.c;g.beginPath();g.arc(44,48,19,0,7);g.fill();g.font='22px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff';g.fillText(s.i,44,50);
+ g.fillStyle='#14213d';g.font='bold 30px system-ui,sans-serif';g.fillText(a.name,152,50);a.lt.needsUpdate=true}
+agents.forEach((a,i)=>{a.ch=makeChar(a.col,i);a.g=a.ch.g;a.g.position.set(a.home[0]+(i-2)*0+0,0,a.home[1]+(i%2?3:-3));scene.add(a.g);a.g.userData.id=a.id;
+ a.lc=canv(256,96);a.lt=new THREE.CanvasTexture(a.lc);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:a.lt,depthTest:false,transparent:true}));sp.scale.set(2.7,1.01,1);sp.position.y=2.55;sp.renderOrder=10;a.g.add(sp);
+ a.faceT=0;drawLabel(a)});
+const player={ch:makeChar(0xff6b9d,5),dest:null};player.g=player.ch.g;player.g.position.set(0,0,6);scene.add(player.g);player.g.userData.id='_player';
+player.name='Edilberto';player.state='you';player.lc=canv(256,96);player.lt=new THREE.CanvasTexture(player.lc);
+{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:player.lt,depthTest:false,transparent:true}));sp.scale.set(2.7,1.01,1);sp.position.y=2.55;sp.renderOrder=10;player.g.add(sp)}drawLabel(player);
+agents.forEach(a=>{if(!a.active)applyActive(a)});
+
+/* ================= MOVIMIENTO / COLISIONES ================= */
+function push(p,r){for(const o of obst){const dx=p.x-o.x,dz=p.z-o.z,cx=clamp(dx,-o.hx,o.hx),cz=clamp(dz,-o.hz,o.hz),ex=dx-cx,ez=dz-cz,d2=ex*ex+ez*ez;
+ if(d2<r*r){if(d2>1e-6){const d=Math.sqrt(d2),k=(r-d)/d;p.x+=ex*k;p.z+=ez*k}else{const px=o.hx-Math.abs(dx),pz=o.hz-Math.abs(dz);if(px<pz)p.x+=(dx<0?-1:1)*(px+r);else p.z+=(dz<0?-1:1)*(pz+r)}}}
+ p.x=clamp(p.x,-19.4,19.4);p.z=clamp(p.z,-13.2,13.2)}
+function targetFor(a){if(a.state==='working'||a.state==='error')return{x:a.home[0],z:a.home[1],f:Math.PI};
+ const i=agents.indexOf(a),s=(SPOTS[a.state]||SPOTS.available)[i];return{x:s[0],z:s[1],f:null}}
+function turn(g,to,k){let d=to-g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));g.rotation.y+=d*clamp(k,0,1)}
+/* Rutas: para cambiar de zona se pasa por las puertas del vestíbulo central */
+const HUB=[[-2.5,-2.5],[2.5,-2.5],[2.5,2.5],[-2.5,2.5]];
+function zoneOf(x,z){return x<0?(z<0?0:3):(z<0?1:2)}
+function route(p,t){const cz=zoneOf(p.x,p.z),tz=zoneOf(t.x,t.z);if(cz===tz)return t;
+ if(Math.abs(p.x)>=4||Math.abs(p.z)>=4){const h=HUB[cz];return{x:h[0],z:h[1]}}
+ const nz=(tz-cz+4)%4<=2?(cz+1)%4:(cz+3)%4,h=HUB[nz];return{x:h[0],z:h[1]}}
+function stepAgent(a,dt,t){const tg=targetFor(a),p=a.g.position,w=route(p,tg),dx=w.x-p.x,dz=w.z-p.z,d=Math.hypot(dx,dz),mv=Math.hypot(tg.x-p.x,tg.z-p.z)>.2;
+ if(mv&&d>.01){const s=Math.min(d,3.2*dt);p.x+=dx/d*s;p.z+=dz/d*s;turn(a.g,Math.atan2(dx,dz),dt*9)}else if(tg.f!==null)turn(a.g,tg.f,dt*6);
+ push(p,.42);const jump=a.state==='error'&&!mv;anim(a.ch,t,mv,jump?'error':(a.state==='working'||a.state==='attention'||a.state==='resting'?a.state:''))}
+
+/* ================= CÁMARA Y ENTRADA ================= */
+const cam={yaw:0,pitch:.95,dist:26,tgt:new THREE.Vector3(0,0,4),follow:player};
+const ZONES={general:['Vista general',0,0,38],ops:['Centro de operaciones',-10,-7,17],meet:['Sala de reuniones',10,-7,17],res:['Zona de investigación',-10,7,17],gar:['Jardín de descanso',10,7,17],me:['Seguir a mi personaje',null,null,18]};
+$('#zoneSel').innerHTML=Object.entries(ZONES).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('');
+function goZone(k){const z=ZONES[k];cam.dist=z[3];cam.follow=z[1]===null?player:{g:{position:new THREE.Vector3(z[1],0,z[2])}}}
+$('#zoneSel').onchange=e=>goZone(e.target.value);
+const keys={};addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;keys[e.code]=true;if(e.code==='Escape')closeAll();if(e.code.startsWith('Arrow'))e.preventDefault()});
+addEventListener('keyup',e=>keys[e.code]=false);addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
+const joy={x:0,y:0,id:null};const jEl=$('#joy'),kn=$('#knob');
+function joyMove(e){const r=jEl.getBoundingClientRect(),dx=e.clientX-(r.left+60),dy=e.clientY-(r.top+60),m=Math.min(1,Math.hypot(dx,dy)/45),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m;joy.y=-Math.sin(a)*m;kn.style.transform=`translate(${Math.cos(a)*m*35}px,${Math.sin(a)*m*35}px)`}
+jEl.onpointerdown=e=>{joy.id=e.pointerId;jEl.setPointerCapture(e.pointerId);joyMove(e)};jEl.onpointermove=e=>{if(e.pointerId===joy.id)joyMove(e)};
+const joyEnd=e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=joy.y=0;kn.style.transform=''}};jEl.onpointerup=joyEnd;jEl.onpointercancel=joyEnd;
+const ptrs=new Map();let downPos=null,pinch=0;const ray=new THREE.Raycaster();ray.camera=camera;const floorPl=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+const cv=renderer.domElement;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});downPos=ptrs.size===1?{x:e.clientX,y:e.clientY}:null;if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y)}});
+cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+ if(ptrs.size===1){cam.yaw-=dx*.006;cam.pitch=clamp(cam.pitch+dy*.005,.35,1.45)}
+ else if(ptrs.size===2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y);cam.dist=clamp(cam.dist*pinch/d,8,45);pinch=d}});
+function pick(e){const r=cv.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);
+ const hit=ray.intersectObjects(agents.map(a=>a.g),true)[0];if(hit){let o=hit.object;while(o&&!o.userData.id)o=o.parent;if(o&&byId[o.userData.id]){openAgent(byId[o.userData.id]);return}}
+ const pt=new THREE.Vector3();if(ray.ray.intersectPlane(floorPl,pt)){player.dest={x:clamp(pt.x,-19,19),z:clamp(pt.z,-13,13)};cam.follow=player}}
+const up=e=>{const wasOne=ptrs.size===1;ptrs.delete(e.pointerId);if(wasOne&&downPos&&Math.hypot(e.clientX-downPos.x,e.clientY-downPos.y)<6)pick(e);downPos=null};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId)});
+cv.addEventListener('wheel',e=>{e.preventDefault();cam.dist=clamp(cam.dist*(1+Math.sign(e.deltaY)*.08),8,45)},{passive:false});
+
+/* ================= PANELES ================= */
+const fmt=d=>d?new Date(d).toLocaleString('es'):'—';
+let sel=null,filter='all';
+function closeAll(){['#ag','#ops','#cfg'].forEach(s=>$(s).classList.remove('on'))}
+function chip(s){const x=STATES[s]||STATES.unknown;return`<span class="chip" style="background:${x.c}">${x.i} ${x.t}</span>`}
+function openAgent(a){sel=a;a.near=true;$('#cfg').classList.remove('on');if(innerWidth<=760)$('#ops').classList.remove('on');$('#ag').classList.add('on');$('#smsg').innerHTML='';renderInfo();cam.follow=a}
+function renderInfo(){renderInfo0();const a=sel;if(!a)return;const t=$('#tg');if(t)t.onclick=()=>toggleAgent(a);$('#send').disabled=!a.active}
+function renderInfo0(){const a=sel;if(!a)return;const demo=MODE==='demo';
+ $('#ainfo').innerHTML=`<h2>${esc(a.name)} <span class="small">${esc(a.role)}</span></h2><p class="small">${esc(a.desc)}</p>
+ ${demo?'<div class="warn"><b>DEMO:</b> estados y tareas son ficticios; no reflejan actividad real.</div>':''}
+ ${backendErr?`<div class="err">Backend sin respuesta: ${esc(backendErr)}</div>`:''}
+ <div class="kv"><span>Estado</span>${chip(a.state)}</div>
+ <div class="row"><button class="btn" id="tg">${a.active?'🚫 Desactivar agente':'✅ Activar agente'}</button></div><div class="small">Interruptor local de la interfaz: no detiene ni inicia el agente real.</div>
+ <div class="kv"><span>Tarea en curso / última</span><b>${esc(a.task)}</b></div>
+ <div class="kv"><span>Última actualización</span><b>${fmt(a.updated)}</b></div>
+ <div class="kv"><span>Resultado última ejecución</span><b>${esc(a.result)}</b></div>
+ <div class="kv"><span>Fuente / enlace</span><b>${a.source?esc(a.source):'—'}</b></div>
+ <h3>Alertas pendientes</h3>${a.alerts.length?a.alerts.map(x=>`<div class="err">${esc(typeof x==='string'?x:x.text)}</div>`).join(''):'<div class="small">Sin alertas registradas.</div>'}
+ ${a.state==='error'&&demo?'<div class="err">Estado de error simulado (demo).</div>':''}
+ <h3>Historial reciente</h3>${a.history.length?a.history.slice(-6).reverse().map(h=>`<div class="small">• ${esc(h.t?fmt(h.t):'')} ${esc(h.text)}</div>`).join(''):'<div class="small">Sin historial.</div>'}
+ ${drafts.filter(d=>d.agent===a.id).length?`<h3>Borradores locales (no ejecutados)</h3>`+drafts.filter(d=>d.agent===a.id).slice(-3).map(d=>`<div class="small">📝 ${esc(d.text)}</div>`).join(''):''}`}
+function msg(t,k){$('#smsg').innerHTML=`<div class="${k}">${esc(t)}</div>`}
+$('#send').onclick=async()=>{const a=sel,txt=$('#ta').value.trim();if(!a)return;if(!a.active){msg('Agente desactivado: actívalo para asignar tareas.','err');return}if(!txt){msg('Escribe una instrucción antes de asignar la tarea.','err');return}
+ const b=$('#send');b.disabled=true;b.textContent='Enviando…';msg('Enviando…','warn');
+ try{if(!canSend){drafts.push({agent:a.id,text:txt,at:Date.now()});try{localStorage.setItem('bm_drafts',JSON.stringify(drafts))}catch(e){}
+   msg('Conexión con BecaMatch pendiente: la tarea NO se ejecutó. Se guardó como borrador local en este navegador.','warn');$('#ta').value='';renderInfo();renderOps()}
+  else{const r=await fetch(CONFIG.backendUrl+CONFIG.taskPath,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agentId:a.id,instruction:txt})});const body=await r.text();
+   if(!r.ok)throw new Error('HTTP '+r.status+' '+body.slice(0,200));msg('Respuesta del servicio: '+body.slice(0,500),'ok');$('#ta').value=''}}
+ catch(e){msg('Error al enviar: '+e.message+'. Puedes reintentar.','err');b.textContent='Reintentar';b.disabled=false;return}
+ b.textContent='Asignar tarea';b.disabled=false};
+const CN={ok:['Conectado y operativo','#27ae60'],error:['Conectado con errores','#e74c3c'],pending:['Pendiente de configuración','#7f8c8d'],demo:['Modo demostración','#f59e0b']};
+function renderOps(){const c=s=>agents.filter(a=>a.state===s).length,al=agents.filter(a=>a.state==='attention'||a.state==='error').length;
+ const names={n8n:'n8n (flujos)',sheets:'Google Sheets',db:'Base de datos',email:'Correo / notificaciones'};
+ const vis=agents.filter(a=>filter==='all'||a.state===filter);
+ $('#ops').innerHTML=`<button class="btn x" id="opsX" aria-label="Cerrar">✕</button><h2>Operaciones</h2>${MODE==='demo'?'<div class="warn">Datos de demostración (ficticios).</div>':''}
+ <div class="kv"><span>Trabajando</span><b>${c('working')}</b></div><div class="kv"><span>Disponibles</span><b>${c('available')}</b></div><div class="kv"><span>Desactivados</span><b>${c('off')}</b></div>
+ <div class="kv"><span>Tareas pendientes (borradores locales)</span><b>${drafts.length}</b></div><div class="kv"><span>Alertas / errores</span><b>${al}</b></div>
+ <div class="kv"><span>Última ejecución</span><b>${lastRun?esc(fmt(lastRun)):'Sin registro real'}</b></div><div class="kv"><span>Último informe</span><b>${lastReport?esc(lastReport):'Sin registro real'}</b></div>
+ <h3>Conexiones externas</h3>${Object.keys(names).map(k=>{const s=MODE==='demo'?'pending':(conn[k]||'pending'),v=CN[s]||CN.pending;return`<div class="kv"><span>${names[k]}</span><span class="chip" style="background:${v[1]}">${v[0]}</span></div>`}).join('')}
+ ${MODE==='demo'?`<div class="kv"><span>Agentes</span><span class="chip" style="background:${CN.demo[1]}">${CN.demo[0]}</span></div>`:''}
+ <h3>Filtro</h3><div class="row">${[['all','Todos'],['working','Trabajando'],['waiting','Esperando'],['error','Con error'],['off','Inactivos']].map(f=>`<button class="btn ${filter===f[0]?'on':''}" data-f="${f[0]}">${f[1]}</button>`).join('')}</div>
+ ${vis.map(a=>`<div class="li" data-a="${a.id}">${chip(a.state)}<div><b>${esc(a.name)}</b><div class="small">${esc(a.role)}</div></div><button class="btn" data-t="${a.id}" style="margin-left:auto;min-height:36px">${a.active?'Desactivar':'Activar'}</button></div>`).join('')||'<div class="small">Ningún agente coincide.</div>'}`;
+ $('#opsX').onclick=()=>$('#ops').classList.remove('on');
+ $('#ops').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{filter=b.dataset.f;applyFilter();renderOps()});
+ $('#ops').querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>openAgent(byId[b.dataset.a]));
+ $('#ops').querySelectorAll('[data-t]').forEach(b=>b.onclick=e=>{e.stopPropagation();toggleAgent(byId[b.dataset.t])})}
+function applyFilter(){agents.forEach(a=>a.g.visible=filter==='all'||a.state===filter)}
+function saveCfg(){const o={};agents.forEach(a=>o[a.id]={name:a.name,role:a.role,active:a.active});try{localStorage.setItem('bm_cfg',JSON.stringify(o))}catch(e){}}
+/* Activar/desactivar: el agente desactivado se pone gris, va al jardín y no recibe cambios de estado ni tareas */
+function applyActive(a){a.g.traverse(o=>{if(!o.isMesh)return;if(!o._m)o._m=o.material;o.material=a.active?o._m:mat(0x9aa3ad)});
+ if(!a.active){if(a.state!=='off')a.prev=a.state;a.state='off';a.task='Agente desactivado manualmente'}
+ else if(a.state==='off'){a.state=a.prev&&a.prev!=='off'?a.prev:(MODE==='demo'?'available':'unknown');a.task=MODE==='demo'?a.demo+' (dato ficticio)':'—'}
+ a.updated=new Date();drawLabel(a)}
+function toggleAgent(a){a.active=!a.active;applyActive(a);saveCfg();if(sel===a)renderInfo();if($('#ops').classList.contains('on'))renderOps();applyFilter()}
+$('#bOps').onclick=()=>{const o=$('#ops');if(o.classList.toggle('on')){renderOps();$('#cfg').classList.remove('on');if(innerWidth<=760)$('#ag').classList.remove('on')}};
+$('#agX').onclick=()=>{$('#ag').classList.remove('on')};
+$('#bCfg').onclick=()=>{const c=$('#cfg');c.classList.toggle('on');if(!c.classList.contains('on'))return;
+ c.innerHTML=`<button class="btn x" id="cfgX">✕</button><h2>Configuración</h2><p class="small">Nombres y roles (se guardan en este navegador). Integraciones: edita <code>CONFIG</code> en el código; los secretos van siempre en tu backend.</p>
+ ${agents.map(a=>`<h3>${esc(a.id)}</h3><input type="text" data-n="${a.id}" value="${esc(a.name)}" maxlength="14" aria-label="Nombre"><input type="text" data-r="${a.id}" value="${esc(a.role)}" aria-label="Rol">`).join('')}
+ <button class="btn pri" id="cfgS" style="width:100%">Guardar</button>`;
+ $('#cfgX').onclick=()=>c.classList.remove('on');
+ $('#cfgS').onclick=()=>{const o={};agents.forEach(a=>{a.name=c.querySelector(`[data-n="${a.id}"]`).value.trim()||a.name;a.role=c.querySelector(`[data-r="${a.id}"]`).value.trim()||a.role;o[a.id]={name:a.name,role:a.role,active:a.active};drawLabel(a)});
+  try{localStorage.setItem('bm_cfg',JSON.stringify(o))}catch(e){}c.classList.remove('on');renderInfo();renderOps()}};
+let paused=matchMedia('(prefers-reduced-motion:reduce)').matches,fx=!coarse&&!paused;
+function setFx(){renderer.shadowMap.enabled=fx;sun.castShadow=fx;scene.traverse(o=>{if(o.material)o.material.needsUpdate=true});renderer.setPixelRatio(fx?Math.min(devicePixelRatio,2):1);renderer.setSize(innerWidth,innerHeight);$('#bFx').textContent='✨ Efectos: '+(fx?'ON':'OFF')}
+function setPause(){$('#bPause').textContent=paused?'▶ Reanudar':'⏸ Pausar'}
+$('#bPause').onclick=()=>{paused=!paused;setPause()};$('#bFx').onclick=()=>{fx=!fx;setFx()};setFx();setPause();
+$('#mode').textContent=MODE==='demo'?'MODO DEMOSTRACIÓN · datos ficticios':'CONECTANDO CON BACKEND…';
+
+/* ================= DATOS: demo y backend real ================= */
+function setState(a,s,why){if(!a.active){a.prev=s;return}a.state=s;a.updated=new Date();drawLabel(a);if(why)a.history.push({t:Date.now(),text:why});if(sel===a)renderInfo();if($('#ops').classList.contains('on'))renderOps();applyFilter()}
+let demoTimer=null,pollTimer=null;
+if(MODE==='demo'){demoTimer=setInterval(()=>{if(paused)return;const pool=agents.filter(x=>x.active);if(!pool.length)return;const a=pool[Math.random()*pool.length|0],ks=['working','available','waiting','resting','attention','error'];let s;do{s=ks[Math.random()*6|0]}while(s===a.state);
+ setState(a,s,'(demo) Cambio de estado simulado a «'+STATES[s].t+'»')},12000)}
+else{const poll=async()=>{try{const r=await fetch(CONFIG.backendUrl+CONFIG.statusPath);if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();backendErr=null;
+ (d.agents||[]).forEach(x=>{const a=byId[x.id];if(!a)return;if(!a.active){if(STATES[x.state])a.prev=x.state;return}if(STATES[x.state])a.state=x.state;a.task=x.task||'—';a.updated=x.updatedAt||null;a.result=x.result||'—';a.alerts=x.alerts||[];a.history=x.history||[];a.source=x.source||'';drawLabel(a)});
+ conn=d.connections||conn;lastRun=d.lastRun||null;lastReport=d.lastReport||null;$('#mode').textContent='BACKEND CONECTADO';$('#mode').style.background='#27ae60';$('#mode').style.color='#fff'}
+ catch(e){backendErr=e.message;$('#mode').textContent='BACKEND CON ERRORES';$('#mode').style.background='#e74c3c';$('#mode').style.color='#fff'}
+ applyFilter();if(sel)renderInfo();if($('#ops').classList.contains('on'))renderOps()};poll();pollTimer=setInterval(poll,CONFIG.pollMs)}
+
+/* ================= BUCLE ÚNICO ================= */
+let last=performance.now(),t=0,raf=0;
+function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;
+ /* jugador */
+ let ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joy.x,iy=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+joy.y;
+ const m=Math.hypot(ix,iy),pp=player.g.position;let mv=false;
+ if(m>.08){const k=Math.min(1,m)/m;ix*=k;iy*=k;const fx_=-Math.sin(cam.yaw),fz=-Math.cos(cam.yaw),rx=Math.cos(cam.yaw),rz=-Math.sin(cam.yaw);
+  const vx=fx_*iy+rx*ix,vz=fz*iy+rz*ix;pp.x+=vx*5*dt;pp.z+=vz*5*dt;turn(player.g,Math.atan2(vx,vz),dt*12);player.dest=null;mv=true;cam.follow=player}
+ else if(player.dest){const w=route(pp,player.dest),dx=w.x-pp.x,dz=w.z-pp.z,d=Math.hypot(dx,dz);if(Math.hypot(player.dest.x-pp.x,player.dest.z-pp.z)<.15)player.dest=null;else if(d>.01){const s=Math.min(d,5*dt);pp.x+=dx/d*s;pp.z+=dz/d*s;turn(player.g,Math.atan2(dx,dz),dt*12);mv=true}}
+ push(pp,.4);anim(player.ch,t,mv,'');
+ if(!paused){t+=dt;agents.forEach(a=>stepAgent(a,dt,t));beacon.material.color.setHex(Math.sin(t*5)>0?0xe74c3c:0x7a2a24);beacon.material=beacon.material}
+ /* proximidad: abre la ficha al acercarse */
+ agents.forEach(a=>{const d=Math.hypot(a.g.position.x-pp.x,a.g.position.z-pp.z);if(d<2&&!a.near&&a.g.visible){openAgent(a)}else if(d>3.5)a.near=false});
+ /* cámara */
+ cam.tgt.lerp(cam.follow.g.position,Math.min(1,dt*4));const cp=Math.cos(cam.pitch);
+ camera.position.set(cam.tgt.x+Math.sin(cam.yaw)*cp*cam.dist,cam.tgt.y+Math.sin(cam.pitch)*cam.dist,cam.tgt.z+Math.cos(cam.yaw)*cp*cam.dist);camera.lookAt(cam.tgt.x,1,cam.tgt.z);
+ renderer.render(scene,camera)}
+raf=requestAnimationFrame(frame);
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}
+addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,200));
+/* Liberación de recursos */
+addEventListener('pagehide',()=>{cancelAnimationFrame(raf);clearInterval(demoTimer);clearInterval(pollTimer);scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}});renderer.dispose()});
+window.__bm={agents,setState,cam,player,CONFIG};/* ayuda para pruebas desde consola */
+</script>
+</body>
+</html>
