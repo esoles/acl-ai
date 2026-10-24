@@ -46,8 +46,10 @@ jobs:
       - name: Prepare Pages site
         run: |
           mkdir -p pages/class-01
+          mkdir -p pages/casita
           mkdir -p pages/machu-picchu-monkey
           cp -R class-01/. pages/class-01/
+          cp -R casita/. pages/casita/
           cp -R machu-picchu-monkey/dist/. pages/machu-picchu-monkey/
 
       - name: Configure Pages
